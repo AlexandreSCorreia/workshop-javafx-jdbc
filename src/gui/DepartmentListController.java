@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 import application.Program;
+import gui.listerners.DataChangeListener;
 import gui.util.Alerts;
 import gui.util.Utils;
 import javafx.collections.FXCollections;
@@ -26,66 +27,68 @@ import javafx.stage.Stage;
 import model.entities.Department;
 import model.services.DepartmentService;
 
-public class DepartmentListController implements Initializable{
-	
+public class DepartmentListController implements Initializable, DataChangeListener {
+
 	private DepartmentService service;
 
 	@FXML
 	private TableView<Department> tableViewDepartment;
-	
+
 	@FXML
-	private TableColumn<Department,Integer> tableColumnId;
-	
+	private TableColumn<Department, Integer> tableColumnId;
+
 	@FXML
-	private TableColumn<Department,String> tableColumnName;
-	
+	private TableColumn<Department, String> tableColumnName;
+
 	@FXML
 	private Button btNew;
 	private ObservableList<Department> obsList;
-	
+
 	@FXML
 	public void onBtNewAction(ActionEvent event) {
 		Stage parentStage = Utils.currentStage(event);
-		Department obj =  new Department();
-		createDialogForm(obj,"/gui/DepartmentForm.fxml",parentStage );
+		Department obj = new Department();
+		createDialogForm(obj, "/gui/DepartmentForm.fxml", parentStage);
 	}
-	
+
 	public void setDepartmentService(DepartmentService service) {
 		this.service = service;
 	}
-	
+
 	private void initiallizeNodes() {
 		tableColumnId.setCellValueFactory(new PropertyValueFactory<>("id"));
 		tableColumnName.setCellValueFactory(new PropertyValueFactory<>("name"));
-		//Pegando referencia do stage para fazer o tableView acompanhar a altura da janela
-		Stage stage = (Stage)Program.getScene().getWindow();
+		// Pegando referencia do stage para fazer o tableView acompanhar a altura da
+		// janela
+		Stage stage = (Stage) Program.getScene().getWindow();
 		tableViewDepartment.prefHeightProperty().bind(stage.heightProperty());
 	}
-	
+
 	public void updateTableView() {
-		if(service == null) {
+		if (service == null) {
 			throw new IllegalStateException("Service was null");
 		}
-		
+
 		List<Department> list = service.findAll();
-		
+
 		obsList = FXCollections.observableArrayList(list);
-		
+
 		tableViewDepartment.setItems(obsList);
-		
+
 	}
-	
-	private void createDialogForm(Department obj,String absoluteName,Stage parentStage) {
+
+	private void createDialogForm(Department obj, String absoluteName, Stage parentStage) {
 		try {
-			
+
 			FXMLLoader loader = new FXMLLoader(getClass().getResource(absoluteName));
 			Pane pane = loader.load();
-			
+
 			DepartmentFormController controller = loader.getController();
 			controller.setDepartment(obj);
 			controller.setDepartmentService(new DepartmentService());
+			controller.subscribeDataChangeListener(this);
 			controller.updateFormData();
-			
+
 			Stage dialogStage = new Stage();
 			dialogStage.setTitle("Enter Department data");
 			dialogStage.setScene(new Scene(pane));
@@ -93,15 +96,20 @@ public class DepartmentListController implements Initializable{
 			dialogStage.initOwner(parentStage);
 			dialogStage.initModality(Modality.WINDOW_MODAL);
 			dialogStage.showAndWait();
-		}catch(IOException e) {
+		} catch (IOException e) {
 			Alerts.showAlert("IO Exception", "Error loading view", e.getMessage(), AlertType.ERROR);
 		}
 	}
-	
+
 	@Override
 	public void initialize(URL url, ResourceBundle rb) {
 		initiallizeNodes();
-		
+
+	}
+
+	@Override
+	public void onDataChanged() {
+		updateTableView();
 	}
 
 }
